@@ -1,0 +1,11 @@
+[INVENTARIO]
+ID,Nombre del producto,Categoría,Descripción,Precio unitario,IVA (%),Descuento (%),Stock actual,Lote / Serie,Fecha de caducidad,Proveedor
+1,Paracetamol 500mg,Medicamento,Caja 10 tabs,45.00,,,120,L12345,2026-05-10,Farmacia Central
+
+[PACIENTES]
+ID Paciente,Nombre completo,Edad,Sexo,Motivo,Signos vitales,Frecuencia cardíaca,Temperatura,Diagnóstico,Tratamiento,Observaciones
+1,Juan Pérez,35,M,Dolor de cabeza,Presión 120/80,72,36.5,Migraña leve,Paracetamol 500mg,Paciente estable
+
+[DOCTORES]
+ID Doctor,Nombre completo,Especialidad,Teléfono,Correo,Consultorio
+1,Dr. José Martínez,Medicina General,555-123-4567,jose.mtz@clinic.com,Consultorio 1
