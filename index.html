@@ -38,7 +38,11 @@ header .right{margin-left:auto;display:flex;gap:8px}
       <button class="btn ghost" onclick="goMainMenu()">Menú</button>
     </div>
   </div>
-  <div class="wrap"><nav id="main"></nav></div>
+  <div class="wrap"><nav id="main"></nav>
+<div id="status" class="muted" style="font-size:12px;margin-top:6px">
+  Estado: <span id="st-init">cargando…</span>
+</div>
+</div>
 </header>
 
 <main class="wrap">
@@ -440,6 +444,14 @@ header .right{margin-left:auto;display:flex;gap:8px}
 </section>
 
 <script>
+
+// ---- Compat / Reset helpers ----
+function qs(k){ const p=new URLSearchParams(location.search); return p.get(k); }
+try {
+  if(qs('reset')==='1'){ localStorage.removeItem(KEY); localStorage.removeItem('folio'); }
+} catch(e){ console.warn('No localStorage', e); }
+function setStatus(msg){ var el=document.getElementById('st-init'); if(el) el.textContent=msg; }
+
 // ===== Utilidades =====
 function downloadCSV(name, rows){
   const csv = rows.map(r=>r.map(v=>String(v??'').replace(/"/g,'""')).map(v=>`"${v}"`).join(',')).join('\n');
@@ -786,7 +798,7 @@ async function limpiarDatosDemo(){ if(!confirm('Esto borrará inventario, ventas
 
 // ===== Inicialización =====
 function initAtajos(){ const cont=document.getElementById('atajos'); if(!cont) return; cont.innerHTML=''; (db.inventario||[]).slice(0,9).forEach(p=>{ const b=document.createElement('button'); b.className='btn ghost'; b.textContent=(p.nombre||'').split(' ').slice(0,2).join(' '); b.title=p.nombre; b.onclick=()=>agregarLinea(p); cont.appendChild(b); }); }
-function init(){ pintarInv(); pintarClientes(); cargarClientesSelects(); cargarPacientesSelects(); pintarProv(); cargarFolio(); initAtajos(); route(); cargarConfig(); }
+function init(){ setStatus('OK: interfaz lista'); pintarInv(); pintarClientes(); cargarClientesSelects(); cargarPacientesSelects(); pintarProv(); cargarFolio(); initAtajos(); route(); cargarConfig(); }
 init();
 </script>
 </body>
