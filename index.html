@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>TPV Farmacia — Demo con Exportaciones</title>
+<title>Suite Salud — Farmacia · Consultorio · Laboratorio (Demo local)</title>
 <style>
-:root{--pri:#0f766e;--b:#dbe5e3;--muted:#64748b}
-*{box-sizing:border-box}body{margin:0;font-family:system-ui;background:#f7faf9;color:#1f2937}
-header{position:sticky;top:0;background:linear-gradient(180deg,#fff,#f1f5f4);border-bottom:1px solid #e5ecea}
-.wrap{max-width:1200px;margin:auto;padding:16px}
+:root{--pri:#0f766e;--b:#dbe5e3;--muted:#64748b;--bg:#f7faf9}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:#1f2937}
+header{position:sticky;top:0;background:linear-gradient(180deg,#fff,#f1f5f4);border-bottom:1px solid #e5ecea;z-index:20}
+.wrap{max-width:1240px;margin:auto;padding:16px}
 .logo{width:44px;height:44px;border-radius:12px;background:#0f766e;display:grid;place-items:center;color:#eafff9;font-weight:900}
-nav{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+nav#main{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
 .navbtn{border:1px solid var(--b);background:#fff;border-radius:12px;padding:12px;text-align:left;cursor:pointer}
 .view{display:none}.active{display:block}
 .card{background:#fff;border:1px solid var(--b);border-radius:12px;padding:12px}
@@ -21,169 +21,387 @@ input,select,textarea{border:1px solid var(--b);border-radius:10px;padding:9px;b
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .badge{background:#e8f4f3;color:#0a4e49;border:1px solid #cfe4e1;border-radius:999px;padding:6px 10px;font-size:12px}
 .muted{color:#64748b}
+.subnav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.subnav .tab{border:1px solid var(--b);background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer}
+.subview{display:none}.subview.active{display:block}
 header .right{margin-left:auto;display:flex;gap:8px}
+.kpi{font-size:28px;font-weight:800}
 </style>
 </head>
 <body>
 <header>
   <div class="wrap" style="display:flex;gap:12px;align-items:center">
     <div class="logo">RX</div>
-    <div><h1 style="margin:0">TPV Farmacia</h1><div class="muted" style="font-size:13px">Demo local — con exportaciones</div></div>
+    <div><h1 style="margin:0">Suite Salud</h1><div class="muted" style="font-size:13px">Farmacia · Consultorio · Laboratorio — DEMO local</div></div>
     <div class="right">
       <button class="btn" onclick="openIAWindow()">Consultar con IA</button>
-      <button class="btn ghost" onclick="goto('config')">Menú</button>
+      <button class="btn ghost" onclick="goMainMenu()">Menú</button>
     </div>
   </div>
-  <div class="wrap"><nav id="menu"></nav></div>
+  <div class="wrap"><nav id="main"></nav></div>
 </header>
 
 <main class="wrap">
-  <!-- VENTAS -->
-  <section id="view-ventas" class="view active">
-    <div class="grid cols-2">
+  <!-- FARMACIA -->
+  <section id="view-farmacia" class="view active">
+    <div class="subnav">
+      <button class="tab" onclick="subtab('farmacia','ventas')">Ventas</button>
+      <button class="tab" onclick="subtab('farmacia','inventario')">Inventario</button>
+      <button class="tab" onclick="subtab('farmacia','clientes')">Clientes</button>
+      <button class="tab" onclick="subtab('farmacia','recetas')">Recetas</button>
+      <button class="tab" onclick="subtab('farmacia','reportes')">Reportes</button>
+      <button class="tab" onclick="subtab('farmacia','proveedores')">Proveedores</button>
+    </div>
+
+    <!-- Ventas -->
+    <div id="farmacia-ventas" class="subview active">
+      <div class="grid cols-2">
+        <div class="card">
+          <h2>Ventas</h2>
+          <div class="toolbar">
+            <input id="buscar" placeholder="Escanea o busca SKU / nombre…" onkeydown="if(event.key==='Enter') buscarYAgregar()"/>
+            <button class="btn" onclick="buscarYAgregar()">Agregar</button>
+            <span class="badge">Folio: <span id="folio-num">0001</span></span>
+          </div>
+          <div id="sugerencias" class="card" style="display:none;max-height:180px;overflow:auto"></div>
+          <table id="tabla-carrito">
+            <thead><tr><th>SKU</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>IVA</th><th>Importe</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="toolbar" style="justify-content:space-between">
+            <div class="muted">Método: <select id="pago"><option>Efectivo</option><option>Tarjeta</option><option>Transferencia</option></select></div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input id="descuento" type="number" min="0" max="100" step="0.1" placeholder="Descuento % (opcional)" oninput="renderCarrito()" style="width:170px"/>
+              <span class="badge" id="subtotal">Subtotal: $0.00</span>
+              <span class="badge" id="impuestos">Impuestos: $0.00</span>
+              <span class="badge" id="descuentoBadge" style="display:none">Descuento: $0.00</span>
+              <span class="badge" id="total">Total: $0.00</span>
+              <button class="btn" onclick="cobrar()">Cobrar</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Atajos</h3>
+          <div class="grid" style="grid-template-columns:repeat(3,1fr)" id="atajos"></div>
+          <p class="muted">El stock baja al cobrar. Ticket 58 mm. IVA y Descuento solo aparecen si se usan.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inventario -->
+    <div id="farmacia-inventario" class="subview">
       <div class="card">
-        <h2>Ventas</h2>
+        <h2>Inventario</h2>
         <div class="toolbar">
-          <input id="buscar" placeholder="Escanea o busca SKU / nombre…" onkeydown="if(event.key==='Enter') buscarYAgregar()"/>
-          <button class="btn" onclick="buscarYAgregar()">Agregar</button>
-          <span class="badge">Folio: <span id="folio-num">0001</span></span>
+          <input placeholder="Buscar…" oninput="filtrarInventario(this.value)"/>
+          <button class="btn ghost" onclick="exportarInventarioCSV()">Exportar CSV</button>
         </div>
-        <div id="sugerencias" class="card" style="display:none;max-height:180px;overflow:auto"></div>
-        <table id="tabla-carrito">
-          <thead><tr><th>SKU</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>IVA</th><th>Importe</th><th></th></tr></thead>
-          <tbody></tbody>
-        </table>
-        <div class="toolbar" style="justify-content:space-between">
-          <div class="muted">Método: <select id="pago"><option>Efectivo</option><option>Tarjeta</option><option>Transferencia</option></select></div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <input id="descuento" type="number" min="0" max="100" step="0.1" placeholder="Descuento % (opcional)" oninput="renderCarrito()" style="width:170px"/>
-            <span class="badge" id="subtotal">Subtotal: $0.00</span>
-            <span class="badge" id="impuestos">Impuestos: $0.00</span>
-            <span class="badge" id="descuentoBadge" style="display:none">Descuento: $0.00</span>
-            <span class="badge" id="total">Total: $0.00</span>
-            <button class="btn" onclick="cobrar()">Cobrar</button>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3>Producto</h3>
+            <div class="grid">
+              <input id="inv-sku" placeholder="SKU*"/>
+              <input id="inv-nombre" placeholder="Nombre*"/>
+              <input id="inv-categoria" placeholder="Categoría"/>
+              <input id="inv-precioVenta" type="number" step="0.01" placeholder="Precio venta*"/>
+              <label>IVA (opcional)
+                <select id="inv-iva">
+                  <option value="" selected>—</option><option value="16">16%</option><option value="8">8%</option><option value="0">0%</option>
+                </select>
+              </label>
+              <input id="inv-stock" type="number" placeholder="Stock*"/>
+              <input id="inv-lote" placeholder="Lote"/>
+              <input id="inv-cad" type="date" placeholder="Caducidad"/>
+              <input id="inv-index" type="hidden"/>
+              <div class="toolbar">
+                <button class="btn" onclick="guardarProducto()">Guardar</button>
+                <button class="btn ghost" onclick="limpiarProducto()">Limpiar</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Listado</h3>
+            <table id="tabla-inv"><thead><tr><th>SKU</th><th>Producto</th><th>Stock</th><th>Precio</th><th>Lote</th><th>Caducidad</th><th></th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clientes -->
+    <div id="farmacia-clientes" class="subview">
+      <div class="card">
+        <h2>Clientes</h2>
+        <div class="toolbar">
+          <input placeholder="Buscar cliente…" oninput="filtrarClientes(this.value)"/>
+          <button class="btn ghost" onclick="exportarClientesCSV()">Exportar CSV</button>
+        </div>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3>Alta / edición</h3>
+            <div class="grid">
+              <input id="cli-nombre" placeholder="Nombre*"/>
+              <input id="cli-tel" placeholder="Teléfono"/>
+              <input id="cli-correo" placeholder="Correo"/>
+              <input id="cli-rfc" placeholder="RFC"/>
+              <input id="cli-index" type="hidden"/>
+              <div class="toolbar">
+                <button class="btn" onclick="guardarCliente()">Guardar</button>
+                <button class="btn ghost" onclick="limpiarCliente()">Limpiar</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Listado</h3>
+            <table id="tabla-cli"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>Compras</th><th></th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recetas (Farmacia) -->
+    <div id="farmacia-recetas" class="subview">
+      <div class="card">
+        <h2>Recetas (control farmacia)</h2>
+        <div class="toolbar">
+          <select id="rx-cliente"></select>
+          <input type="file" id="rx-archivo"/>
+          <select id="rx-estatus"><option>Pendiente</option><option>Validada</option><option>Expirada</option></select>
+          <button class="btn" onclick="guardarReceta()">Guardar receta</button>
+          <button class="btn ghost" onclick="exportarRecetasCSV()">Exportar CSV</button>
+        </div>
+        <div class="toolbar">
+          <input id="rx-buscar" placeholder="Buscar por cliente/archivo…" oninput="pintarRecetas()"/>
+          <select id="rx-filtro" onchange="pintarRecetas()"><option value="">Todos</option><option>Pendiente</option><option>Validada</option><option>Expirada</option></select>
+        </div>
+        <table id="tabla-rec"><thead><tr><th>Fecha</th><th>Cliente</th><th>Archivo</th><th>Estatus</th><th></th></tr></thead><tbody></tbody></table>
+        <p class="muted">Archivos guardados localmente (IndexedDB). Descárgalos cuando quieras.</p>
+      </div>
+    </div>
+
+    <!-- Proveedores -->
+    <div id="farmacia-proveedores" class="subview">
+      <div class="card">
+        <h2>Proveedores y Pedidos</h2>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3>Proveedor</h3>
+            <div class="grid">
+              <input id="prov-nombre" placeholder="Nombre proveedor*"/>
+              <input id="prov-contacto" placeholder="Contacto"/>
+              <input id="prov-tel" placeholder="Teléfono"/>
+              <input id="prov-correo" placeholder="Correo"/>
+              <input id="prov-terminos" placeholder="Términos de pago (ej. 30 días)"/>
+              <input id="prov-index" type="hidden"/>
+              <div class="toolbar">
+                <button class="btn" onclick="guardarProveedor()">Guardar</button>
+                <button class="btn ghost" onclick="limpiarProveedor()">Limpiar</button>
+              </div>
+            </div>
+            <table id="tabla-prov"><thead><tr><th>Proveedor</th><th>Contacto</th><th>Teléfono</th><th></th></tr></thead><tbody></tbody></table>
+          </div>
+          <div class="card">
+            <h3>Pedidos</h3>
+            <div class="toolbar">
+              <button class="btn" onclick="nuevoPedido()">Nuevo pedido</button>
+              <select id="ped-estatus-filtro" onchange="pintarPedidos()"><option value="">Todos</option><option>Pendiente</option><option>En proceso</option><option>Recibido</option><option>Cancelado</option></select>
+              <button class="btn ghost" onclick="exportarPedidosCSV()">Exportar CSV</button>
+            </div>
+            <table id="tabla-ped"><thead><tr><th>Folio</th><th>Proveedor</th><th>Fecha</th><th>Estatus</th><th></th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reportes -->
+    <div id="farmacia-reportes" class="subview">
+      <div class="card">
+        <h2>Reportes (Farmacia)</h2>
+        <div class="toolbar">
+          <select id="rep-rango">
+            <option value="hoy">Hoy</option>
+            <option value="7">Últimos 7 días</option>
+            <option value="30">Últimos 30 días</option>
+            <option value="mes">Mes actual</option>
+          </select>
+          <button class="btn" onclick="generarReportes()">Generar</button>
+          <button class="btn ghost" onclick="exportarVentasCSV()">Exportar ventas CSV</button>
+          <button class="btn" onclick="imprimirResumen()">Imprimir/Guardar PDF</button>
+        </div>
+        <div id="rep-cards" class="grid cols-2"></div>
+        <div class="card" style="margin-top:10px">
+          <h3>Ventas (detalle)</h3>
+          <table id="tabla-ventas"><thead><tr><th>Folio</th><th>Fecha</th><th>Pago</th><th>Subtotal</th><th>IVA</th><th>Descuento</th><th>Total</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONSULTORIO -->
+  <section id="view-consultorio" class="view">
+    <div class="subnav">
+      <button class="tab" onclick="subtab('consultorio','pacientes')">Pacientes</button>
+      <button class="tab" onclick="subtab('consultorio','agenda')">Agenda</button>
+      <button class="tab" onclick="subtab('consultorio','nota')">Nota clínica</button>
+      <button class="tab" onclick="subtab('consultorio','ia')">Consulta IA</button>
+    </div>
+
+    <div id="consultorio-pacientes" class="subview active">
+      <div class="card">
+        <h2>Pacientes</h2>
+        <div class="toolbar">
+          <input placeholder="Buscar…" oninput="filtrarPacientes(this.value)"/>
+          <button class="btn ghost" onclick="exportarPacientesCSV()">Exportar CSV</button>
+        </div>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3>Alta/edición</h3>
+            <div class="grid">
+              <input id="pac-nombre" placeholder="Nombre*"/>
+              <input id="pac-edad" type="number" placeholder="Edad"/>
+              <input id="pac-tel" placeholder="Teléfono"/>
+              <input id="pac-sexo" placeholder="Sexo"/>
+              <input id="pac-motivo" placeholder="Motivo"/>
+              <input id="pac-sv" placeholder="Signos vitales (p.ej. 120/80)"/>
+              <input id="pac-fc" placeholder="Frecuencia cardiaca"/>
+              <input id="pac-temp" placeholder="Temperatura (°C)"/>
+              <textarea id="pac-dx" rows="2" placeholder="Diagnóstico"></textarea>
+              <textarea id="pac-tx" rows="2" placeholder="Tratamiento"></textarea>
+              <input id="pac-index" type="hidden"/>
+              <div class="toolbar">
+                <button class="btn" onclick="guardarPaciente()">Guardar</button>
+                <button class="btn ghost" onclick="limpiarPaciente()">Limpiar</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Listado</h3>
+            <table id="tabla-pac"><thead><tr><th>Nombre</th><th>Edad</th><th>Teléfono</th><th>Notas</th><th></th></tr></thead><tbody></tbody></table>
           </div>
         </div>
       </div>
       <div class="card">
-        <h3>Atajos</h3>
-        <div class="grid" style="grid-template-columns:repeat(3,1fr)" id="atajos"></div>
-        <p class="muted">Conecta a Inventario. El stock baja al cobrar. Ticket 58mm.</p>
+        <h3>Archivos del paciente</h3>
+        <div class="toolbar">
+          <select id="files-paciente"></select>
+          <input id="pac-files" type="file" multiple/>
+          <button class="btn" onclick="uploadPatientFiles()">Subir archivos</button>
+        </div>
+        <table id="tabla-archivos"><thead><tr><th>Nombre</th><th>Tipo</th><th>Tamaño</th><th>Fecha</th><th>Paciente</th><th></th></tr></thead><tbody></tbody></table>
       </div>
     </div>
-  </section>
 
-  <!-- INVENTARIO -->
-  <section id="view-inventario" class="view">
-    <div class="card">
-      <h2>Inventario</h2>
-      <div class="toolbar">
-        <input placeholder="Buscar…" oninput="filtrarInventario(this.value)"/>
-        <button class="btn ghost" onclick="exportarInventarioCSV()">Exportar CSV</button>
+    <div id="consultorio-agenda" class="subview">
+      <div class="card">
+        <h2>Agenda</h2>
+        <div class="toolbar">
+          <select id="cita-paciente"></select>
+          <input id="cita-fecha" type="date"/>
+          <input id="cita-hora" type="time"/>
+          <input id="cita-motivo" placeholder="Motivo"/>
+          <button class="btn" onclick="agendarCita()">Agendar</button>
+          <button class="btn ghost" onclick="exportarCitasCSV()">Exportar CSV</button>
+        </div>
+        <table id="tabla-citas"><thead><tr><th>Fecha</th><th>Hora</th><th>Paciente</th><th>Motivo</th><th>Estatus</th><th></th></tr></thead><tbody></tbody></table>
       </div>
-      <div class="grid cols-2">
-        <div class="card">
-          <h3>Producto</h3>
-          <div class="grid">
-            <input id="inv-sku" placeholder="SKU*"/>
-            <input id="inv-nombre" placeholder="Nombre*"/>
-            <input id="inv-categoria" placeholder="Categoría"/>
-            <input id="inv-precioVenta" type="number" step="0.01" placeholder="Precio venta*"/>
-            <label>IVA (opcional)
-              <select id="inv-iva">
-                <option value="" selected>—</option><option value="16">16%</option><option value="8">8%</option><option value="0">0%</option>
-              </select>
-            </label>
-            <input id="inv-stock" type="number" placeholder="Stock*"/>
-            <input id="inv-lote" placeholder="Lote"/>
-            <input id="inv-cad" type="date" placeholder="Caducidad"/>
-            <input id="inv-index" type="hidden"/>
-            <div class="toolbar">
-              <button class="btn" onclick="guardarProducto()">Guardar</button>
-              <button class="btn ghost" onclick="limpiarProducto()">Limpiar</button>
+    </div>
+
+    <div id="consultorio-nota" class="subview">
+      <div class="card">
+        <h2>Nota clínica</h2>
+        <div class="grid cols-2">
+          <div class="card">
+            <div class="grid">
+              <select id="nc-paciente"></select>
+              <input id="nc-motivo" placeholder="Motivo"/>
+              <textarea id="nc-dx" rows="3" placeholder="Diagnóstico"></textarea>
+              <textarea id="nc-tx" rows="3" placeholder="Tratamiento"></textarea>
+              <div class="toolbar">
+                <button class="btn" onclick="guardarNotaClinica()">Guardar nota</button>
+                <button class="btn ghost" onclick="imprimirNota()">Imprimir/Guardar PDF</button>
+                <button class="btn ghost" onclick="exportarNotasCSV()">Exportar CSV</button>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="card">
-          <h3>Listado</h3>
-          <table id="tabla-inv"><thead><tr><th>SKU</th><th>Producto</th><th>Stock</th><th>Precio</th><th>Lote</th><th>Caducidad</th><th></th></tr></thead><tbody></tbody></table>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- CLIENTES -->
-  <section id="view-clientes" class="view">
-    <div class="card">
-      <h2>Clientes</h2>
-      <div class="toolbar">
-        <input placeholder="Buscar cliente…" oninput="filtrarClientes(this.value)"/>
-        <button class="btn ghost" onclick="exportarClientesCSV()">Exportar CSV</button>
-      </div>
-      <div class="grid cols-2">
-        <div class="card">
-          <h3>Alta / edición</h3>
-          <div class="grid">
-            <input id="cli-nombre" placeholder="Nombre*"/>
-            <input id="cli-tel" placeholder="Teléfono"/>
-            <input id="cli-correo" placeholder="Correo"/>
-            <input id="cli-rfc" placeholder="RFC"/>
-            <input id="cli-index" type="hidden"/>
-            <div class="toolbar">
-              <button class="btn" onclick="guardarCliente()">Guardar</button>
-              <button class="btn ghost" onclick="limpiarCliente()">Limpiar</button>
-            </div>
+          <div class="card">
+            <h3>Historial</h3>
+            <table id="tabla-notas"><thead><tr><th>Fecha</th><th>Paciente</th><th>Dx</th><th>Tx</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
-        <div class="card">
-          <h3>Listado</h3>
-          <table id="tabla-cli"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>Compras</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+
+    <div id="consultorio-ia" class="subview">
+      <div class="card">
+        <h2>Consulta IA (demo)</h2>
+        <textarea id="ia-q" rows="6" placeholder="Escribe tu consulta…"></textarea>
+        <div class="toolbar"><button class="btn" onclick="consultaIA()">Consultar</button><button class="btn ghost" onclick="copyToNota()">Copiar a Nota Clínica</button></div>
+        <div id="ia-respuesta" class="card" style="white-space:pre-wrap"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LABORATORIO -->
+  <section id="view-lab" class="view">
+    <div class="subnav">
+      <button class="tab" onclick="subtab('lab','ordenes')">Órdenes</button>
+      <button class="tab" onclick="subtab('lab','muestras')">Muestras</button>
+      <button class="tab" onclick="subtab('lab','resultados')">Resultados</button>
+      <button class="tab" onclick="subtab('lab','reportes')">Reportes</button>
+      <button class="tab" onclick="subtab('lab','reactivos')">Reactivos</button>
+    </div>
+
+    <div id="lab-ordenes" class="subview active">
+      <div class="card">
+        <h2>Órdenes de laboratorio</h2>
+        <div class="toolbar">
+          <select id="lab-paciente"></select>
+          <input id="lab-pruebas" placeholder="Pruebas (ej. Biometría, Glucosa)"/>
+          <select id="lab-estatus"><option>Registrada</option><option>Muestra tomada</option><option>En proceso</option><option>Resultados listos</option><option>Validada</option><option>Entregada</option></select>
+          <button class="btn" onclick="crearOrden()">Crear orden</button>
+          <button class="btn ghost" onclick="exportarOrdenesCSV()">Exportar CSV</button>
         </div>
+        <table id="tabla-ordenes"><thead><tr><th>Folio</th><th>Fecha</th><th>Paciente</th><th>Pruebas</th><th>Estatus</th><th></th></tr></thead><tbody></tbody></table>
       </div>
     </div>
-  </section>
 
-  <!-- RECETAS -->
-  <section id="view-recetas" class="view">
-    <div class="card">
-      <h2>Recetas (control farmacia)</h2>
-      <div class="toolbar">
-        <select id="rx-cliente"></select>
-        <input type="file" id="rx-archivo"/>
-        <select id="rx-estatus">
-          <option>Pendiente</option><option>Validada</option><option>Expirada</option>
-        </select>
-        <button class="btn" onclick="guardarReceta()">Guardar receta</button>
-        <button class="btn ghost" onclick="exportarRecetasCSV()">Exportar CSV</button>
+    <div id="lab-muestras" class="subview">
+      <div class="card">
+        <h2>Toma de muestras</h2>
+        <table id="tabla-muestras"><thead><tr><th>Folio</th><th>Paciente</th><th>Pruebas</th><th>Estatus</th><th></th></tr></thead><tbody></tbody></table>
       </div>
-      <div class="toolbar">
-        <input id="rx-buscar" placeholder="Buscar por cliente/archivo…" oninput="pintarRecetas()"/>
-        <select id="rx-filtro" onchange="pintarRecetas()"><option value="">Todos</option><option>Pendiente</option><option>Validada</option><option>Expirada</option></select>
-      </div>
-      <table id="tabla-rec"><thead><tr><th>Fecha</th><th>Cliente</th><th>Archivo</th><th>Estatus</th><th></th></tr></thead><tbody></tbody></table>
-      <p class="muted">Archivos guardados localmente (IndexedDB). Descárgalos cuando quieras.</p>
     </div>
-  </section>
 
-  <!-- REPORTES -->
-  <section id="view-reportes" class="view">
-    <div class="card">
-      <h2>Reportes</h2>
-      <div class="toolbar">
-        <select id="rep-rango">
-          <option value="hoy">Hoy</option>
-          <option value="7">Últimos 7 días</option>
-          <option value="30">Últimos 30 días</option>
-          <option value="mes">Mes actual</option>
-        </select>
-        <button class="btn" onclick="generarReportes()">Generar</button>
-        <button class="btn ghost" onclick="exportarVentasCSV()">Exportar ventas CSV</button>
-        <button class="btn" onclick="imprimirResumen()">Imprimir/Guardar PDF</button>
+    <div id="lab-resultados" class="subview">
+      <div class="card">
+        <h2>Resultados</h2>
+        <div class="toolbar">
+          <input id="lab-upload-folio" placeholder="Folio de orden"/>
+          <input id="lab-file" type="file"/>
+          <button class="btn" onclick="subirResultado()">Subir resultado</button>
+        </div>
+        <table id="tabla-resultados"><thead><tr><th>Folio</th><th>Paciente</th><th>Archivo</th><th>Fecha</th><th></th></tr></thead><tbody></tbody></table>
+        <p class="muted">Los archivos de resultados se guardan localmente (IndexedDB) y se pueden descargar.</p>
       </div>
-      <div id="rep-cards" class="grid cols-2"></div>
-      <div class="card" style="margin-top:10px">
-        <h3>Ventas (detalle)</h3>
-        <table id="tabla-ventas"><thead><tr><th>Folio</th><th>Fecha</th><th>Pago</th><th>Subtotal</th><th>IVA</th><th>Descuento</th><th>Total</th></tr></thead><tbody></tbody></table>
+    </div>
+
+    <div id="lab-reportes" class="subview">
+      <div class="card">
+        <h2>Reportes (Laboratorio)</h2>
+        <div class="toolbar">
+          <button class="btn" onclick="generarReporteLab()">Generar</button>
+          <button class="btn ghost" onclick="exportarOrdenesCSV()">Exportar órdenes CSV</button>
+        </div>
+        <div id="lab-kpis" class="grid cols-2"></div>
+      </div>
+    </div>
+
+    <div id="lab-reactivos" class="subview">
+      <div class="card">
+        <h2>Inventario de reactivos (demo)</h2>
+        <div class="toolbar">
+          <button class="btn ghost" onclick="exportarReactivosCSV()">Exportar CSV</button>
+        </div>
+        <table id="tabla-react"><thead><tr><th>Código</th><th>Reactivo</th><th>Stock</th><th>Caducidad</th></tr></thead><tbody></tbody></table>
       </div>
     </div>
   </section>
@@ -195,7 +413,7 @@ header .right{margin-left:auto;display:flex;gap:8px}
       <div class="grid cols-2">
         <div class="card">
           <h3>Negocio</h3>
-          <label>Nombre del negocio<br><input id="negocio" placeholder="Farmacia Demo"/></label>
+          <label>Nombre del negocio<br><input id="negocio" placeholder="Farma Casa de la Salud"/></label>
           <div class="toolbar"><button class="btn" onclick="guardarConfig()">Guardar</button><span class="muted">Se guarda en este dispositivo.</span></div>
         </div>
         <div class="card">
@@ -204,7 +422,7 @@ header .right{margin-left:auto;display:flex;gap:8px}
         </div>
         <div class="card">
           <h3>Mantenimiento</h3>
-          <p class="muted">Borra datos locales (inventario/ventas/recetas/clientes).</p>
+          <p class="muted">Borra datos locales (incluye IndexedDB de archivos).</p>
           <button class="btn ghost" onclick="limpiarDatosDemo()">Borrar datos del dispositivo (demo)</button>
         </div>
       </div>
@@ -222,109 +440,353 @@ header .right{margin-left:auto;display:flex;gap:8px}
 </section>
 
 <script>
-// ===== Helpers =====
-function downloadCSV(filename, rows){
+// ===== Utilidades =====
+function downloadCSV(name, rows){
   const csv = rows.map(r=>r.map(v=>String(v??'').replace(/"/g,'""')).map(v=>`"${v}"`).join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url);
+  const a=document.createElement('a'); a.href=url; a.download=name; a.click(); URL.revokeObjectURL(url);
 }
-function formatea(n){ return '$'+(+n).toFixed(2); }
+function fmt(n){ return '$'+(+n).toFixed(2); }
+function today(){ const d=new Date(); return d.toISOString().slice(0,10); }
 
 // ===== Datos persistentes =====
-const STORE_KEY='tpv_farma_export_v1';
-const defaultData={
+const KEY='suite_salud_adv_v1';
+const def={
   inventario:[
-    {sku:'PARA-500', nombre:'Paracetamol 500mg 10 tabs', precioVenta:45, iva:'', stock:120, lote:'L12345', cad:'2026-05-10'},
-    {sku:'IBU-400', nombre:'Ibuprofeno 400mg 20 tabs', precioVenta:80, iva:'16', stock:85, lote:'I45678', cad:'2026-01-20'},
-    {sku:'VITA-C1G', nombre:'Vitamina C 1g 100 tabs', precioVenta:150, iva:'', stock:40, lote:'V78901', cad:'2027-03-15'},
-    {sku:'SUERO-500', nombre:'Suero oral 500ml', precioVenta:35, iva:'16', stock:100, lote:'S99001', cad:'2025-12-10'}
+    {sku:'PARA-500', nombre:'Paracetamol 500mg 10 tabs', categoria:'Medicamento', precioVenta:45, iva:'', stock:120, lote:'L12345', cad:'2026-05-10'},
+    {sku:'IBU-400', nombre:'Ibuprofeno 400mg 20 tabs', categoria:'Medicamento', precioVenta:80, iva:'16', stock:85, lote:'I45678', cad:'2026-01-20'},
+    {sku:'VITA-C1G', nombre:'Vitamina C 1g 100 tabs', categoria:'Vitaminas', precioVenta:150, iva:'', stock:40, lote:'V78901', cad:'2027-03-15'},
+    {sku:'SUERO-500', nombre:'Suero oral 500ml', categoria:'Soluciones', precioVenta:35, iva:'16', stock:100, lote:'S99001', cad:'2025-12-10'}
   ],
   clientes:[{nombre:'Juan Pérez',tel:'555-100-2000',correo:'',rfc:'',compras:0},{nombre:'María López',tel:'',correo:'',rfc:'',compras:0}],
   ventas:[],
-  recetas:[]
+  proveedores:[{nombre:'Distribuidora SaludMax',contacto:'Laura Díaz',tel:'55 8000 0000',correo:'ventas@saludmax.com',terminos:'30 días'}],
+  pedidos:[{folio:'P-0001',proveedor:'Distribuidora SaludMax',fecha:today(),estatus:'En proceso'}],
+  recetas:[],
+  c_pacientes:[{nombre:'Carlos Reyes',edad:34,tel:'55 1111 2222',sexo:'M',notas:1}],
+  c_citas:[{fecha:today(),hora:'17:00',paciente:'Carlos Reyes',motivo:'Revisión',estatus:'Agendada'}],
+  c_notas:[],
+  lab_ordenes:[{folio:'LAB-0001',fecha:today(),paciente:'Carlos Reyes',pruebas:'Biometría Hemática',estatus:'Registrada'}],
+  lab_reactivos:[{cod:'R-GLU',nombre:'Reactivo Glucosa',stock:25,cad:'2026-03-01'},{cod:'R-BH',nombre:'Kit Biometría',stock:12,cad:'2025-11-15'}]
 };
-let db = JSON.parse(localStorage.getItem(STORE_KEY)||'null')||defaultData;
-function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
+let db = JSON.parse(localStorage.getItem(KEY)||'null')||def;
+function save(){ localStorage.setItem(KEY, JSON.stringify(db)); }
 
-// ===== Menú =====
-const AREAS=[
-  {id:'ventas',nombre:'Ventas'},{id:'inventario',nombre:'Inventario'},
-  {id:'clientes',nombre:'Clientes'},{id:'recetas',nombre:'Recetas'},
-  {id:'reportes',nombre:'Reportes'},{id:'config',nombre:'Configuración'}
-];
-const menu=document.getElementById('menu');
+// ===== Menú principal y routing =====
+const AREAS=[{id:'farmacia',nombre:'Farmacia'},{id:'consultorio',nombre:'Consultorio'},{id:'lab',nombre:'Laboratorio'},{id:'config',nombre:'Configuración'}];
+const menu=document.getElementById('main');
 AREAS.forEach(a=>{ const b=document.createElement('button'); b.className='navbtn'; b.innerHTML='<b>'+a.nombre+'</b><div class="muted">Abrir</div>'; b.onclick=()=>goto(a.id); menu.appendChild(b); });
-function mostrar(id){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); const sec=document.getElementById('view-'+id); if(sec){ sec.classList.add('active'); window.scrollTo({top:0,behavior:'smooth'}); }}
+function mostrar(id){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); const sec=document.getElementById('view-'+id); if(sec){ sec.classList.add('active'); window.scrollTo({top:0,behavior:'smooth'}); } }
+function subtab(area,tab){ document.querySelectorAll('#view-'+area+' .subview').forEach(x=>x.classList.remove('active')); const tgt=document.getElementById(area+'-'+tab); if(tgt){ tgt.classList.add('active'); } }
+function goMainMenu(){ window.scrollTo({top:0,behavior:'smooth'}); const mainNav=document.getElementById('main'); if(mainNav){ mainNav.setAttribute('tabindex','-1'); mainNav.focus(); } }
+function goto(id){ location.hash = '#/'+id; }
+function route(){ const id=(location.hash.replace('#/','')||'farmacia'); document.getElementById('view-ia').style.display=(id==='ia')?'block':'none'; mostrar(id);
+  if(id==='farmacia'){ pintarInv(); pintarClientes(); cargarClientesSelects(); pintarProv(); cargarFolio(); initAtajos(); }
+  if(id==='consultorio'){ pintarPacientes(); cargarPacientesSelects(); renderArchivosForSelected(); pintarCitas(); pintarNotas(); }
+  if(id==='lab'){ cargarClientesSelects(); pintarOrdenes(); const rb=document.querySelector('#tabla-react tbody'); if(rb){ rb.innerHTML=''; (db.lab_reactivos||[]).forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${r.cod}</td><td>${r.nombre}</td><td>${r.stock}</td><td>${r.cad}</td>`; rb.appendChild(tr); }); }
+}
+window.addEventListener('hashchange',route);
 
-// ===== Ventas =====
+// ===== Ventas (Farmacia) =====
 let carrito=[];
-function sugerenciasHTML(list){ return list.map(p=>`<div style='padding:6px 8px;border-bottom:1px solid #eef3f2;cursor:pointer' onclick='agregarProductoPorSKU("${p.sku}")'><b>${p.nombre}</b><br><span class="muted">${p.sku} · $${(+p.precioVenta||0).toFixed(2)} · Stock: ${p.stock||0}</span></div>`).join(''); }
-function buscarYAgregar(){ const q=(document.getElementById('buscar').value||'').trim().toLowerCase(); if(!q) return; const inv=db.inventario||[]; let list=inv.filter(p=>(p.sku||'').toLowerCase()===q); if(list.length===0){ list=inv.filter(p=>(p.nombre||'').toLowerCase().includes(q)); const sug=document.getElementById('sugerencias'); if(list.length>1){ sug.innerHTML=sugerenciasHTML(list.slice(0,20)); sug.style.display='block'; return; } } const p=list[0]; if(!p){ alert('No encontrado'); return;} document.getElementById('sugerencias').style.display='none'; agregarLinea(p); document.getElementById('buscar').value=''; }
+function sugHTML(list){ return list.map(p=>`<div style='padding:6px 8px;border-bottom:1px solid #eef3f2;cursor:pointer' onclick='agregarProductoPorSKU("${p.sku}")'><b>${p.nombre}</b><br><span class="muted">${p.sku} · ${fmt(+p.precioVenta||0)} · Stock: ${p.stock||0}</span></div>`).join(''); }
+function buscarYAgregar(){
+  const q=(document.getElementById('buscar').value||'').trim().toLowerCase(); if(!q) return;
+  const inv=db.inventario||[]; let list=inv.filter(p=>(p.sku||'').toLowerCase()===q);
+  if(list.length===0){
+    list=inv.filter(p=>(p.nombre||'').toLowerCase().includes(q));
+    const s=document.getElementById('sugerencias');
+    if(list.length>1){ s.innerHTML=sugHTML(list.slice(0,20)); s.style.display='block'; return; }
+  }
+  const p=list[0]; if(!p){ alert('No encontrado'); return;}
+  document.getElementById('sugerencias').style.display='none'; agregarLinea(p);
+  document.getElementById('buscar').value='';
+}
 function agregarProductoPorSKU(sku){ const p=(db.inventario||[]).find(x=>x.sku===sku); if(p){ document.getElementById('sugerencias').style.display='none'; agregarLinea(p);} }
-function agregarLinea(p){ const precio=+(p.precioVenta||0); const ivaPctRaw=(p.iva===''||p.iva===null||typeof p.iva==='undefined')?null:+p.iva; const existe=carrito.find(i=>i.sku===p.sku); if(existe){ if((existe.cant+1)>(+p.stock||0)){ alert('Sin stock'); return;} existe.cant++; renderCarrito(); return; } carrito.push({sku:p.sku,nombre:p.nombre,cant:1,precio,ivaPct:ivaPctRaw,stock:+(p.stock||0)}); renderCarrito(); }
-function cambiarCant(i,delta){ const it=carrito[i]; if(!it) return; const nueva=it.cant+delta; if(nueva<=0){ carrito.splice(i,1);} else if(nueva>it.stock){ alert('Stock insuficiente'); } else { it.cant=nueva; } renderCarrito(); }
+function agregarLinea(p){
+  const precio=+(p.precioVenta||0);
+  const ivaPct=(p.iva===''||p.iva===null||typeof p.iva==='undefined')?null:+p.iva;
+  const ex=carrito.find(i=>i.sku===p.sku);
+  if(ex){ if((ex.cant+1)>(+p.stock||0)){ alert('Sin stock'); return;} ex.cant++; renderCarrito(); return; }
+  carrito.push({sku:p.sku,nombre:p.nombre,cant:1,precio,ivaPct,stock:+(p.stock||0)}); renderCarrito();
+}
+function cambiarCant(i,d){ const it=carrito[i]; if(!it) return; const n=it.cant+d; if(n<=0){ carrito.splice(i,1);} else if(n>it.stock){ alert('Stock insuficiente'); } else { it.cant=n; } renderCarrito(); }
 function quitarItem(i){ carrito.splice(i,1); renderCarrito(); }
-function renderCarrito(){ const tb=document.querySelector('#tabla-carrito tbody'); tb.innerHTML=''; let subtotal=0, impuestos=0; carrito.forEach((it,i)=>{ const base=it.cant*it.precio; const iva=(it.ivaPct==null?0:base*(it.ivaPct/100)); subtotal+=base; impuestos+=iva; const ivaTxt=(it.ivaPct==null?'—':(it.ivaPct||0)+'%'); const tr=document.createElement('tr'); tr.innerHTML=`<td>${it.sku}</td><td>${it.nombre}</td><td><button class='btn ghost' onclick='cambiarCant(${i},-1)'>-</button> ${it.cant} <button class='btn ghost' onclick='cambiarCant(${i},1)'>+</button></td><td>${formatea(it.precio)}</td><td>${ivaTxt}</td><td>${formatea(base+iva)}</td><td><button class='btn ghost' onclick='quitarItem(${i})'>Quitar</button></td>`; tb.appendChild(tr); }); const pctEl=document.getElementById('descuento'); const pct=(pctEl && pctEl.value!=='' ? Math.max(0,Math.min(100,+pctEl.value)) : null); const preTotal=subtotal+impuestos; const descAmt=pct==null?0:(preTotal*(pct/100)); const total=preTotal-descAmt; document.getElementById('subtotal').textContent=`Subtotal: ${formatea(subtotal)}`; document.getElementById('impuestos').textContent=`Impuestos: ${formatea(impuestos)}`; const dbadge=document.getElementById('descuentoBadge'); if(pct==null||descAmt<=0){ dbadge.style.display='none'; } else { dbadge.style.display='inline-grid'; dbadge.textContent=`Descuento (${pct.toFixed(1)}%): -${formatea(descAmt)}`; } document.getElementById('total').textContent=`Total: ${formatea(total)}`; }
-function siguienteFolio(){ const f= +(localStorage.getItem('folio')||1); localStorage.setItem('folio', f+1); const s=String(f).padStart(4,'0'); const el=document.getElementById('folio-num'); if(el) el.textContent=s; return s; }
+function renderCarrito(){
+  const tb=document.querySelector('#tabla-carrito tbody'); tb.innerHTML='';
+  let sub=0, imp=0, ivaUsado=false;
+  carrito.forEach((it,i)=>{
+    const base=it.cant*it.precio; const iva=(it.ivaPct==null?0:base*(it.ivaPct/100));
+    if(it.ivaPct!=null && it.ivaPct>0) ivaUsado=true;
+    sub+=base; imp+=iva;
+    const ivaTxt=(it.ivaPct==null?'—':(it.ivaPct||0)+'%');
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${it.sku}</td><td>${it.nombre}</td>
+      <td><button class='btn ghost' onclick='cambiarCant(${i},-1)'>-</button> ${it.cant} <button class='btn ghost' onclick='cambiarCant(${i},1)'>+</button></td>
+      <td>${fmt(it.precio)}</td><td>${ivaTxt}</td><td>${fmt(base+iva)}</td>
+      <td><button class='btn' onclick='quitarItem(${i})'>Quitar</button></td>`;
+    tb.appendChild(tr);
+  });
+  const el=document.getElementById('descuento');
+  const pct = el && el.value!=='' ? Math.max(0,Math.min(100, +el.value)) : null;
+  const pre = sub+imp; const desc = pct==null ? 0 : (pre*(pct/100)); const tot = pre - desc;
+  document.getElementById('subtotal').textContent=`Subtotal: ${fmt(sub)}`;
+  document.getElementById('impuestos').textContent=`Impuestos: ${fmt(imp)}`;
+  const dbadge=document.getElementById('descuentoBadge');
+  if(pct==null||desc<=0){ dbadge.style.display='none'; } else { dbadge.style.display='inline-grid'; dbadge.textContent=`Descuento (${pct.toFixed(1)}%): -${fmt(desc)}`; }
+  document.getElementById('total').textContent=`Total: ${fmt(tot)}`;
+}
+function nextFolio(){ const f= +(localStorage.getItem('folio')||1); localStorage.setItem('folio', f+1); const s=String(f).padStart(4,'0'); const el=document.getElementById('folio-num'); if(el) el.textContent=s; return s; }
 function cargarFolio(){ const f= +(localStorage.getItem('folio')||1); const s=String(f).padStart(4,'0'); const el=document.getElementById('folio-num'); if(el) el.textContent=s; }
-function cobrar(){ if(carrito.length===0){ alert('Carrito vacío'); return; } for(const it of carrito){ const prod=(db.inventario||[]).find(p=>p.sku===it.sku); if(!prod || (+prod.stock<it.cant)){ alert('Stock insuficiente de '+(it.nombre||it.sku)); return; } } let subtotal=0, impuestos=0; carrito.forEach(it=>{ const base=it.cant*it.precio; const iva=(it.ivaPct==null?0:base*(it.ivaPct/100)); subtotal+=base; impuestos+=iva; }); const pctEl=document.getElementById('descuento'); const pct=(pctEl && pctEl.value!=='' ? Math.max(0,Math.min(100,+pctEl.value)) : null); const preTotal=subtotal+impuestos; const descAmt=pct==null?0:(preTotal*(pct/100)); const totalNum=preTotal-descAmt; carrito.forEach(it=>{ const prod=db.inventario.find(p=>p.sku===it.sku); prod.stock=(+prod.stock||0)-it.cant; }); save(); pintarInv(); db.ventas=db.ventas||[]; const folio=siguienteFolio(); const ticket={ folio, fecha:new Date().toISOString(), pago:document.getElementById('pago').value, descuentoPct:pct, descuentoAmt:descAmt, subtotal, impuestos, total: totalNum, items:carrito.map(i=>({sku:i.sku,nombre:i.nombre,cant:i.cant,precio:i.precio,iva:i.ivaPct})) }; db.ventas.push(ticket); save(); imprimirTicket(ticket); carrito=[]; renderCarrito(); alert('Cobro registrado'); }
-function imprimirTicket(t){ const negocio=localStorage.getItem('negocio')||'Farma Demo'; const pie=localStorage.getItem('pieTicket')||'Gracias por su compra 💊'; const win=window.open('','ticket','width=380,height=600'); win.document.write(`<html><head><title>Ticket ${t.folio}</title><style>body{font-family:system-ui;padding:10px} h3{margin:0 0 6px 0} table{width:100%;font-size:12px;border-collapse:collapse} td{padding:4px 0;border-bottom:1px dashed #ccc}</style></head><body>`); win.document.write(`<h3>${negocio}</h3><div>Folio: ${t.folio} | ${new Date(t.fecha).toLocaleString()}</div><hr><table>`); t.items.forEach(i=>{ const base=(i.cant*i.precio); const ivaLine=(i.iva==null?0:(base*(i.iva/100))); const imp=base+ivaLine; const ivaBadge=(i.iva==null?'':` <span style='color:#0a4e49'>(IVA ${i.iva}%)</span>`); win.document.write(`<tr><td>${i.nombre} x${i.cant}${ivaBadge}</td><td style='text-align:right'>${formatea(imp)}</td></tr>`); }); win.document.write(`</table><hr>`); win.document.write(`<div style='text-align:right'>Subtotal: ${formatea(t.subtotal)}</div>`); win.document.write(`<div style='text-align:right'>Impuestos: ${formatea(t.impuestos)}</div>`); if(t.descuentoPct!=null && t.descuentoAmt>0){ win.document.write(`<div style='text-align:right'>Descuento (${t.descuentoPct.toFixed(1)}%): -${formatea(t.descuentoAmt)}</div>`); } win.document.write(`<div style='text-align:right;font-weight:700'>Total: ${formatea(t.total)}</div>`); if(t.items.some(i=>i.iva!=null)){ win.document.write(`<p style='font-size:11px;margin-top:6px;color:#374151'>Incluye IVA por producto solo cuando está especificado.</p>`);} win.document.write(`<p style='margin-top:10px;text-align:center'>${pie}</p></body></html>`); win.document.close(); win.print(); }
+function cobrar(){
+  if(carrito.length===0){ alert('Carrito vacío'); return; }
+  for(const it of carrito){ const prod=(db.inventario||[]).find(p=>p.sku===it.sku); if(!prod || (+prod.stock<it.cant)){ alert('Stock insuficiente de '+(it.nombre||it.sku)); return; } }
+  let sub=0, imp=0, ivaUsado=false; carrito.forEach(it=>{ const base=it.cant*it.precio; const iva=(it.ivaPct==null?0:base*(it.ivaPct/100)); if(it.ivaPct!=null && it.ivaPct>0) ivaUsado=true; sub+=base; imp+=iva; });
+  const pctEl=document.getElementById('descuento'); const pct=pctEl && pctEl.value!=='' ? Math.max(0,Math.min(100,+pctEl.value)) : null;
+  const pre=sub+imp; const desc=pct==null?0:(pre*(pct/100)); const totalNum=pre-desc;
+  carrito.forEach(it=>{ const prod=db.inventario.find(p=>p.sku===it.sku); prod.stock=(+prod.stock||0)-it.cant; }); save(); pintarInv();
+  db.ventas = db.ventas||[]; const folio=nextFolio(); const t={ folio, fecha:new Date().toISOString(), pago:document.getElementById('pago').value, descuentoPct:pct, descuentoAmt:desc, subtotal:sub, impuestos:imp, total: totalNum, items:carrito.map(i=>({sku:i.sku,nombre:i.nombre,cant:i.cant,precio:i.precio,iva:i.ivaPct})) };
+  db.ventas.push(t); save();
+  imprimirTicket(t, ivaUsado);
+  carrito=[]; renderCarrito(); alert('Cobro registrado');
+}
+function imprimirTicket(t, ivaUsado){
+  const negocio=localStorage.getItem('negocio')||'Farma Casa de la Salud'; const pie=localStorage.getItem('pieTicket')||'Gracias por su compra 💊';
+  const w=window.open('','ticket','width=380,height=600');
+  w.document.write(`<html><head><title>Ticket ${t.folio}</title><style>body{font-family:system-ui;padding:10px} h3{margin:0 0 6px 0} table{width:100%;font-size:12px;border-collapse:collapse} td{padding:4px 0;border-bottom:1px dashed #ccc}</style></head><body>`);
+  w.document.write(`<h3>${negocio}</h3><div>Folio: ${t.folio} | ${new Date(t.fecha).toLocaleString()}</div><hr><table>`);
+  t.items.forEach(i=>{ const base=(i.cant*i.precio); const ivaLine = (i.iva==null?0:(base*(i.iva/100))); const imp=base+ivaLine; const ivaBadge = (i.iva==null? '' : ` <span style='color:#0a4e49'>(IVA ${i.iva}%)</span>`); w.document.write(`<tr><td>${i.nombre} x${i.cant}${ivaBadge}</td><td style='text-align:right'>${fmt(imp)}</td></tr>`); });
+  w.document.write(`</table><hr>`);
+  w.document.write(`<div style='text-align:right'>Subtotal: ${fmt(t.subtotal)}</div>`);
+  if(ivaUsado){ w.document.write(`<div style='text-align:right'>Impuestos: ${fmt(t.impuestos)}</div>`); }
+  if(t.descuentoPct!=null && t.descuentoAmt>0){ w.document.write(`<div style='text-align:right'>Descuento (${t.descuentoPct.toFixed(1)}%): -${fmt(t.descuentoAmt)}</div>`); }
+  w.document.write(`<div style='text-align:right;font-weight:700'>Total: ${fmt(t.total)}</div>`);
+  if(ivaUsado){ w.document.write(`<p style='margin-top:10px;font-size:11px'>* Este ticket incluye IVA en las partidas donde aplica.</p>`); }
+  w.document.write(`<p style='margin-top:10px;text-align:center'>${pie}</p></body></html>`);
+  w.document.close(); w.print();
+}
 
-// ===== Inventario CRUD + export =====
-function getInvForm(){ return { sku:document.getElementById('inv-sku').value.trim(), nombre:document.getElementById('inv-nombre').value.trim(), categoria:document.getElementById('inv-categoria').value.trim(), precioVenta:+(document.getElementById('inv-precioVenta').value||0), iva:(document.getElementById('inv-iva').value===''? '': document.getElementById('inv-iva').value), stock:+(document.getElementById('inv-stock').value||0), lote:document.getElementById('inv-lote').value.trim(), cad:document.getElementById('inv-cad').value }; }
+// ===== Inventario =====
+function getInvForm(){ return { sku:document.getElementById('inv-sku').value.trim(), nombre:document.getElementById('inv-nombre').value.trim(), categoria:document.getElementById('inv-categoria').value.trim(), precioVenta:+(document.getElementById('inv-precioVenta').value||0), iva:(document.getElementById('inv-iva').value===''? '': document.getElementById('inv-iva').value), stock:+(document.getElementById('inv-stock').value||0), lote:document.getElementById('inv-lote').value.trim(), cad:document.getElementById('inv-cad').value}; }
 function setInvForm(p){ document.getElementById('inv-sku').value=p.sku||''; document.getElementById('inv-nombre').value=p.nombre||''; document.getElementById('inv-categoria').value=p.categoria||''; document.getElementById('inv-precioVenta').value=p.precioVenta||''; document.getElementById('inv-iva').value=(p.iva===''?'':p.iva)||''; document.getElementById('inv-stock').value=p.stock||''; document.getElementById('inv-lote').value=p.lote||''; document.getElementById('inv-cad').value=p.cad||''; }
 function limpiarProducto(){ setInvForm({}); document.getElementById('inv-index').value=''; }
 function guardarProducto(){ const idx=(document.getElementById('inv-index').value||''); const p=getInvForm(); if(!p.sku||!p.nombre||!p.precioVenta){ alert('SKU, Nombre y Precio venta son obligatorios'); return; } if(idx===''){ db.inventario.push(p);} else { db.inventario[+idx]=p;} save(); limpiarProducto(); pintarInv(); }
 function editarProducto(i){ document.getElementById('inv-index').value=i; setInvForm(db.inventario[i]); }
 function eliminarProducto(i){ if(confirm('¿Eliminar producto?')){ db.inventario.splice(i,1); save(); pintarInv(); } }
-function pintarInv(list){ list=list||db.inventario; const tb=document.querySelector('#tabla-inv tbody'); if(!tb) return; tb.innerHTML=''; list.forEach((p,i)=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${p.sku}</td><td>${p.nombre}</td><td>${p.stock}</td><td>${formatea(+p.precioVenta)}</td><td>${p.lote||''}</td><td>${p.cad||''}</td><td><button class='btn ghost' onclick='editarProducto(${i})'>Editar</button> <button class='btn' onclick='eliminarProducto(${i})'>Eliminar</button></td>`; tb.appendChild(tr); }); }
+function pintarInv(list){
+  list=list||db.inventario; const tb=document.querySelector('#tabla-inv tbody'); if(!tb) return; tb.innerHTML='';
+  list.forEach((p,i)=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${p.sku}</td><td>${p.nombre}</td><td>${p.stock}</td><td>${fmt(+p.precioVenta)}</td><td>${p.lote||''}</td><td>${p.cad||''}</td><td><button class='btn ghost' onclick='editarProducto(${i})'>Editar</button> <button class='btn' onclick='eliminarProducto(${i})'>Eliminar</button></td>`; tb.appendChild(tr); });
+}
 function filtrarInventario(q){ const v=(q||'').toLowerCase(); pintarInv(db.inventario.filter(p=>Object.values(p).join(' ').toLowerCase().includes(v))); }
 function exportarInventarioCSV(){ const rows=[['SKU','Nombre','Categoría','PrecioVenta','IVA','Stock','Lote','Caducidad'],...db.inventario.map(p=>[p.sku,p.nombre,p.categoria||'',p.precioVenta,p.iva,p.stock,p.lote||'',p.cad||''])]; downloadCSV('inventario.csv',rows); }
 
-// ===== Clientes CRUD + export =====
+// ===== Clientes =====
 function getCliForm(){ return { nombre:document.getElementById('cli-nombre').value.trim(), tel:document.getElementById('cli-tel').value.trim(), correo:document.getElementById('cli-correo').value.trim(), rfc:document.getElementById('cli-rfc').value.trim(), compras:0 }; }
 function setCliForm(c){ document.getElementById('cli-nombre').value=c.nombre||''; document.getElementById('cli-tel').value=c.tel||''; document.getElementById('cli-correo').value=c.correo||''; document.getElementById('cli-rfc').value=c.rfc||''; }
 function limpiarCliente(){ setCliForm({}); document.getElementById('cli-index').value=''; }
-function guardarCliente(){ const idx=document.getElementById('cli-index').value||''; const c=getCliForm(); if(!c.nombre){alert('Nombre es obligatorio'); return;} if(idx===''){ db.clientes.push(c);} else { db.clientes[+idx]=c;} save(); limpiarCliente(); pintarClientes(); cargarClientesSelects(); }
+function guardarCliente(){ const idx=document.getElementById('cli-index').value||''; const c=getCliForm(); if(!c.nombre){alert('Nombre es obligatorio'); return;} if(idx===''){ db.clientes.push(c);} else { db.clientes[+idx]=c;} save(); limpiarCliente(); pintarClientes(); cargarClientesSelects(); cargarPacientesSelects(); }
 function editarCliente(i){ document.getElementById('cli-index').value=i; setCliForm(db.clientes[i]); }
-function eliminarCliente(i){ if(confirm('¿Eliminar cliente?')){ db.clientes.splice(i,1); save(); pintarClientes(); cargarClientesSelects(); } }
+function eliminarCliente(i){ if(confirm('¿Eliminar cliente?')){ db.clientes.splice(i,1); save(); pintarClientes(); cargarClientesSelects(); cargarPacientesSelects(); } }
 function pintarClientes(list){ list=list||db.clientes; const tb=document.querySelector('#tabla-cli tbody'); if(!tb) return; tb.innerHTML=''; list.forEach((c,i)=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${c.nombre}</td><td>${c.tel||''}</td><td>${c.correo||''}</td><td>${c.compras||0}</td><td><button class='btn ghost' onclick='editarCliente(${i})'>Editar</button> <button class='btn' onclick='eliminarCliente(${i})'>Eliminar</button></td>`; tb.appendChild(tr); }); }
 function filtrarClientes(q){ const v=(q||'').toLowerCase(); pintarClientes(db.clientes.filter(c=>Object.values(c).join(' ').toLowerCase().includes(v))); }
 function exportarClientesCSV(){ const rows=[['Nombre','Telefono','Correo','RFC','Compras'],...db.clientes.map(c=>[c.nombre,c.tel||'',c.correo||'',c.rfc||'',c.compras||0])]; downloadCSV('clientes.csv',rows); }
-function cargarClientesSelects(){ const sel=document.getElementById('rx-cliente'); if(sel){ sel.innerHTML=''; (db.clientes||[]).forEach(c=>{ const o=document.createElement('option'); o.value=c.nombre; o.textContent=c.nombre; sel.appendChild(o); }); } }
+function cargarClientesSelects(){
+  const sel=document.getElementById('rx-cliente'); if(sel){ sel.innerHTML=''; (db.clientes||[]).forEach(c=>{ const o=document.createElement('option'); o.value=c.nombre; o.textContent=c.nombre; sel.appendChild(o); }); }
+  const labSel=document.getElementById('lab-paciente'); if(labSel){ labSel.innerHTML=''; (db.clientes||[]).forEach(c=>{ const o=document.createElement('option'); o.value=c.nombre; o.textContent=c.nombre; labSel.appendChild(o); }); }
+}
 
-// ===== Recetas (IndexedDB) + export =====
+// ===== Recetas (IndexedDB) =====
 let rxDB=null;
-function openRxDB(){ return new Promise((resolve,reject)=>{ const req=indexedDB.open('tpv_rx_files',1); req.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains('rx')){ const s=db.createObjectStore('rx',{keyPath:'id',autoIncrement:true}); s.createIndex('cliente','cliente',{unique:false}); } }; req.onsuccess=()=>{rxDB=req.result; resolve(rxDB);} ; req.onerror=()=>reject(req.error); }); }
+function openRxDB(){ return new Promise((resolve,reject)=>{ const req=indexedDB.open('rx_files',1); req.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains('rx')){ const s=db.createObjectStore('rx',{keyPath:'id',autoIncrement:true}); s.createIndex('cliente','cliente',{unique:false}); } }; req.onsuccess=()=>{rxDB=req.result; resolve(rxDB);} ; req.onerror=()=>reject(req.error); }); }
 function addRx(rec){ return new Promise((resolve,reject)=>{ const tx=rxDB.transaction('rx','readwrite'); const s=tx.objectStore('rx'); const r=s.add(rec); r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error); }); }
 function getRx(){ return new Promise((resolve,reject)=>{ const tx=rxDB.transaction('rx','readonly'); const s=tx.objectStore('rx'); const r=s.getAll(); r.onsuccess=()=>resolve(r.result||[]); r.onerror=()=>reject(r.error); }); }
-async function guardarReceta(){ try{ await openRxDB(); const cliente=(document.getElementById('rx-cliente').value||''); if(!cliente){ alert('Selecciona cliente'); return; } const estatus=document.getElementById('rx-estatus').value; const fileEl=document.getElementById('rx-archivo'); const f=fileEl.files[0]; let blob=null,name=''; if(f){ const buf=await f.arrayBuffer(); blob=new Blob([buf],{type:f.type||'application/octet-stream'}); name=f.name; } const rec={cliente, estatus, fecha:new Date().toISOString(), name, blob}; await addRx(rec); fileEl.value=''; await pintarRecetas(); alert('Receta guardada'); } catch(e){ alert('Error: '+e); } }
-async function pintarRecetas(){ await openRxDB(); const filtro=document.getElementById('rx-filtro')?.value||''; const q=(document.getElementById('rx-buscar')?.value||'').toLowerCase(); const list=(await getRx()).filter(r=>(!filtro||r.estatus===filtro) && (`${r.cliente} ${r.name}`.toLowerCase().includes(q))); const tb=document.querySelector('#tabla-rec tbody'); if(!tb) return; tb.innerHTML=''; list.sort((a,b)=>b.fecha.localeCompare(a.fecha)); list.forEach(r=>{ const tr=document.createElement('tr'); const d=new Date(r.fecha).toLocaleString(); tr.innerHTML=`<td>${d}</td><td>${r.cliente}</td><td>${r.name||'—'}</td><td>${r.estatus}</td><td><button class='btn ghost' onclick='descargarRx(${r.id})'>Descargar</button></td>`; tb.appendChild(tr); }); }
-async function descargarRx(id){ await openRxDB(); const tx=rxDB.transaction('rx','readonly'); const s=tx.objectStore('rx'); const r=s.get(id); r.onsuccess=()=>{ const rec=r.result; if(!rec||!rec.blob){ alert('No hay archivo'); return;} const url=URL.createObjectURL(rec.blob); const a=document.createElement('a'); a.href=url; a.download=rec.name||'receta'; a.click(); URL.revokeObjectURL(url); }; }
+async function guardarReceta(){
+  try{
+    await openRxDB();
+    const cliente=(document.getElementById('rx-cliente').value||''); if(!cliente){ alert('Selecciona cliente'); return; }
+    const estatus=document.getElementById('rx-estatus').value;
+    const fileEl=document.getElementById('rx-archivo'); const f=fileEl.files[0]; let blob=null,name='';
+    if(f){ const buf=await f.arrayBuffer(); blob=new Blob([buf],{type:f.type||'application/octet-stream'}); name=f.name; }
+    const rec={cliente, estatus, fecha:new Date().toISOString(), name, blob};
+    await addRx(rec); pintarRecetas(); fileEl.value=''; alert('Receta guardada');
+  }catch(e){ console.error(e); alert('Error guardando receta'); }
+}
+async function pintarRecetas(){
+  await openRxDB();
+  const filtro=document.getElementById('rx-filtro')?.value||'';
+  const q=(document.getElementById('rx-buscar')?.value||'').toLowerCase();
+  const list=(await getRx()).filter(r=>(!filtro||r.estatus===filtro) && (`${r.cliente} ${r.name}`.toLowerCase().includes(q)));
+  const tb=document.querySelector('#tabla-rec tbody'); if(!tb) return; tb.innerHTML='';
+  list.sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  list.forEach(r=>{
+    const tr=document.createElement('tr');
+    const fecha=new Date(r.fecha).toLocaleString();
+    tr.innerHTML=`<td>${fecha}</td><td>${r.cliente}</td><td>${r.name||''}</td><td>${r.estatus}</td>
+      <td><button class='btn ghost' onclick='descargarRx(${r.id})'>Descargar</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+async function descargarRx(id){
+  await openRxDB();
+  const tx=rxDB.transaction('rx','readonly'); const s=tx.objectStore('rx'); const r=s.get(id);
+  r.onsuccess=()=>{ const rec=r.result; if(!rec||!rec.blob){ alert('No hay archivo'); return;} const url=URL.createObjectURL(rec.blob); const a=document.createElement('a'); a.href=url; a.download=rec.name||'receta'; a.click(); URL.revokeObjectURL(url); };
+}
 async function exportarRecetasCSV(){ await openRxDB(); const list=await getRx(); const rows=[['ID','Fecha','Cliente','Archivo','Estatus'], ...list.map(r=>[r.id,new Date(r.fecha).toLocaleString(),r.cliente,r.name||'',r.estatus])]; downloadCSV('recetas.csv',rows); }
 
-// ===== Reportes + export =====
-function generarReportes(){ const rango=document.getElementById('rep-rango').value; const now=new Date(); let from=new Date(); if(rango==='hoy'){ from = new Date(now.getFullYear(),now.getMonth(),now.getDate()); } else if(rango==='7'){ from = new Date(now.getTime()-7*86400000); } else if(rango==='30'){ from = new Date(now.getTime()-30*86400000); } else if(rango==='mes'){ from = new Date(now.getFullYear(),now.getMonth(),1); } const ventas=db.ventas.filter(v=> new Date(v.fecha) >= from ); const cards=document.getElementById('rep-cards'); cards.innerHTML=''; const total=ventas.reduce((a,v)=>a+Number(v.total||0),0); const iva=ventas.reduce((a,v)=>a+Number(v.impuestos||0),0); const desc=ventas.reduce((a,v)=>a+Number(v.descuentoAmt||0),0); const tickets=ventas.length; const top=(()=>{ const m=new Map(); ventas.forEach(v=>v.items.forEach(i=>m.set(i.nombre,(m.get(i.nombre)||0)+i.cant))); let r=[...m.entries()].sort((a,b)=>b[1]-a[1])[0]; return r? r[0]+' ('+r[1]+')':'—'; })(); const mk=(t,v)=>{ const c=document.createElement('div'); c.className='card'; c.innerHTML=`<h3>${t}</h3><p style="font-size:26px;font-weight:800">${v}</p>`; return c; }; cards.append(mk('Total vendido', formatea(total))); cards.append(mk('IVA acumulado', formatea(iva))); cards.append(mk('Descuentos', formatea(desc))); cards.append(mk('Tickets', tickets)); cards.append(mk('Top producto', top)); const tb=document.querySelector('#tabla-ventas tbody'); tb.innerHTML=''; ventas.forEach(v=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${v.folio}</td><td>${new Date(v.fecha).toLocaleString()}</td><td>${v.pago}</td><td>${formatea(v.subtotal)}</td><td>${formatea(v.impuestos)}</td><td>${v.descuentoAmt?formatea(v.descuentoAmt):'—'}</td><td>${formatea(v.total)}</td>`; tb.appendChild(tr); }); }
-function exportarVentasCSV(){ const rows=[['Folio','Fecha','Pago','Subtotal','IVA','Descuento','Total'], ...(db.ventas||[]).map(v=>[v.folio,new Date(v.fecha).toLocaleString(),v.pago,Number(v.subtotal||0),Number(v.impuestos||0),Number(v.descuentoAmt||0),Number(v.total||0)])]; downloadCSV('ventas.csv',rows); }
-function imprimirResumen(){ const cont=document.getElementById('rep-cards').innerHTML; const table=document.getElementById('tabla-ventas').outerHTML; const w=window.open('','rep','width=900,height=700'); w.document.write(`<html><head><title>Resumen de ventas</title><style>body{font-family:system-ui;padding:16px} h2{margin:0 0 10px 0} table{width:100%;border-collapse:collapse} th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left} th{font-size:12px;text-transform:uppercase;color:#555}</style></head><body><h2>Resumen de ventas</h2><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">${cont}</div><h3>Detalle</h3>${table}</body></html>`); w.document.close(); w.print(); }
+// ===== Proveedores & Pedidos =====
+function getProvForm(){ return { nombre:document.getElementById('prov-nombre').value.trim(), contacto:document.getElementById('prov-contacto').value.trim(), tel:document.getElementById('prov-tel').value.trim(), correo:document.getElementById('prov-correo').value.trim(), terminos:document.getElementById('prov-terminos').value.trim() }; }
+function setProvForm(p){ document.getElementById('prov-nombre').value=p.nombre||''; document.getElementById('prov-contacto').value=p.contacto||''; document.getElementById('prov-tel').value=p.tel||''; document.getElementById('prov-correo').value=p.correo||''; document.getElementById('prov-terminos').value=p.terminos||''; }
+function limpiarProveedor(){ setProvForm({}); document.getElementById('prov-index').value=''; }
+function guardarProveedor(){ const idx=document.getElementById('prov-index').value||''; const p=getProvForm(); if(!p.nombre){ alert('Nombre de proveedor es obligatorio'); return;} if(idx===''){ db.proveedores.push(p);} else { db.proveedores[+idx]=p;} save(); limpiarProveedor(); pintarProv(); }
+function editarProveedor(i){ document.getElementById('prov-index').value=i; setProvForm(db.proveedores[i]); }
+function eliminarProveedor(i){ if(confirm('¿Eliminar proveedor?')){ db.proveedores.splice(i,1); save(); pintarProv(); } }
+function pintarProv(){
+  const tb=document.querySelector('#tabla-prov tbody'); if(tb){ tb.innerHTML=''; db.proveedores.forEach((p,i)=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${p.nombre}</td><td>${p.contacto||''}</td><td>${p.tel||''}</td><td><button class='btn ghost' onclick='editarProveedor(${i})'>Editar</button> <button class='btn' onclick='eliminarProveedor(${i})'>Eliminar</button></td>`; tb.appendChild(tr); }); }
+  pintarPedidos();
+}
+function nuevoPedido(){ const folio='P-'+String((db.pedidos?.length||0)+1).padStart(4,'0'); const proveedor=(db.proveedores[0]||{}).nombre||'—'; db.pedidos.push({folio,proveedor,fecha:today(),estatus:'Pendiente'}); save(); pintarPedidos(); }
+function cambiarEstatusPedido(i){ const ests=['Pendiente','En proceso','Recibido','Cancelado']; const next=prompt('Nuevo estatus (Pendiente/En proceso/Recibido/Cancelado):', db.pedidos[i].estatus); if(next && ests.includes(next)){ db.pedidos[i].estatus=next; save(); pintarPedidos(); } }
+function pintarPedidos(){ const tb=document.querySelector('#tabla-ped tbody'); if(!tb) return; const filtro=document.getElementById('ped-estatus-filtro')?.value||''; tb.innerHTML=''; db.pedidos.filter(p=>!filtro||p.estatus===filtro).forEach((p,i)=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${p.folio}</td><td>${p.proveedor}</td><td>${p.fecha}</td><td>${p.estatus}</td><td><button class='btn ghost' onclick='cambiarEstatusPedido(${i})'>Cambiar estatus</button></td>`; tb.appendChild(tr); }); }
+function exportarPedidosCSV(){ const rows=[['Folio','Proveedor','Fecha','Estatus'],...(db.pedidos||[]).map(p=>[p.folio,p.proveedor,p.fecha,p.estatus])]; downloadCSV('pedidos.csv',rows); }
 
-// ===== IA (placeholder) =====
+// ===== Reportes (Farmacia) =====
+function generarReportes(){
+  const rango=document.getElementById('rep-rango').value; const now=new Date(); let from=new Date();
+  if(rango==='hoy'){ from = new Date(now.getFullYear(),now.getMonth(),now.getDate()); }
+  else if(rango==='7'){ from = new Date(now.getTime()-7*86400000); }
+  else if(rango==='30'){ from = new Date(now.getTime()-30*86400000); }
+  else if(rango==='mes'){ from = new Date(now.getFullYear(),now.getMonth(),1); }
+  const ventas=db.ventas.filter(v=> new Date(v.fecha) >= from );
+  const cards=document.getElementById('rep-cards'); cards.innerHTML='';
+  const mk=(t,v)=>{const c=document.createElement('div'); c.className='card'; c.innerHTML=`<h3>${t}</h3><div class='kpi'>${v}</div>`; return c}
+  const total=ventas.reduce((s,v)=>s+Number(v.total||0),0);
+  cards.append(mk('Total vendido', fmt(total)));
+  cards.append(mk('Tickets', ventas.length));
+  const tb=document.querySelector('#tabla-ventas tbody'); tb.innerHTML='';
+  ventas.forEach(v=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${v.folio}</td><td>${new Date(v.fecha).toLocaleString()}</td><td>${v.pago}</td><td>${fmt(v.subtotal)}</td><td>${fmt(v.impuestos)}</td><td>${v.descuentoAmt?fmt(v.descuentoAmt):'—'}</td><td>${fmt(v.total)}</td>`; tb.appendChild(tr); });
+}
+function exportarVentasCSV(){ const rows=[['Folio','Fecha','Pago','Subtotal','IVA','Descuento','Total'], ...(db.ventas||[]).map(v=>[v.folio,new Date(v.fecha).toLocaleString(),v.pago,Number(v.subtotal||0),Number(v.impuestos||0),Number(v.descuentoAmt||0),Number(v.total||0)])]; downloadCSV('ventas.csv',rows); }
+function imprimirResumen(){
+  const cont=document.getElementById('rep-cards').innerHTML; const table=document.getElementById('tabla-ventas').outerHTML;
+  const w=window.open('','rep','width=900,height=700');
+  w.document.write(`<html><head><title>Resumen de ventas</title><style>body{font-family:system-ui;padding:16px} h2{margin:0 0 10px 0} table{width:100%;border-collapse:collapse} th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left} th{font-size:12px;text-transform:uppercase;color:#555}</style></head><body><h2>Resumen de ventas</h2>${cont}${table}</body></html>`);
+  w.document.close(); w.print();
+}
+
+// ===== Consultorio: Pacientes CRUD + files (IndexedDB) =====
+function cargarPacientesSelects(){
+  const sel=document.getElementById('files-paciente'); if(sel){ sel.innerHTML=''; (db.c_pacientes||[]).forEach(p=>{ const o=document.createElement('option'); o.value=p.nombre; o.textContent=p.nombre; sel.appendChild(o); }); }
+  const sel2=document.getElementById('cita-paciente'); if(sel2){ sel2.innerHTML=''; (db.c_pacientes||[]).forEach(p=>{ const o=document.createElement('option'); o.value=p.nombre; o.textContent=p.nombre; sel2.appendChild(o); }); }
+  const sel3=document.getElementById('nc-paciente'); if(sel3){ sel3.innerHTML=''; (db.c_pacientes||[]).forEach(p=>{ const o=document.createElement('option'); o.value=p.nombre; o.textContent=p.nombre; sel3.appendChild(o); }); }
+}
+function getPacForm(){ return { nombre:document.getElementById('pac-nombre').value.trim(), edad:+(document.getElementById('pac-edad').value||0), tel:document.getElementById('pac-tel').value.trim(), sexo:document.getElementById('pac-sexo').value.trim(), motivo:document.getElementById('pac-motivo').value.trim(), sv:document.getElementById('pac-sv').value.trim(), fc:document.getElementById('pac-fc').value.trim(), temp:document.getElementById('pac-temp').value.trim(), dx:document.getElementById('pac-dx').value.trim(), tx:document.getElementById('pac-tx').value.trim(), notas:0 }; }
+function setPacForm(p){ document.getElementById('pac-nombre').value=p.nombre||''; document.getElementById('pac-edad').value=p.edad||''; document.getElementById('pac-tel').value=p.tel||''; document.getElementById('pac-sexo').value=p.sexo||''; document.getElementById('pac-motivo').value=p.motivo||''; document.getElementById('pac-sv').value=p.sv||''; document.getElementById('pac-fc').value=p.fc||''; document.getElementById('pac-temp').value=p.temp||''; document.getElementById('pac-dx').value=p.dx||''; document.getElementById('pac-tx').value=p.tx||''; }
+function limpiarPaciente(){ setPacForm({}); document.getElementById('pac-index').value=''; }
+function guardarPaciente(){ const idx=(document.getElementById('pac-index').value||''); const p=getPacForm(); if(!p.nombre){ alert('Nombre es obligatorio'); return;} if(idx===''){ db.c_pacientes.push(p);} else { db.c_pacientes[+idx]=p;} save(); limpiarPaciente(); pintarPacientes(); cargarPacientesSelects(); }
+function editarPaciente(i){ document.getElementById('pac-index').value=i; setPacForm(db.c_pacientes[i]); }
+function eliminarPaciente(i){ if(confirm('¿Eliminar paciente?')){ db.c_pacientes.splice(i,1); save(); pintarPacientes(); cargarPacientesSelects(); } }
+function pintarPacientes(list){ list=list||db.c_pacientes; const tb=document.querySelector('#tabla-pac tbody'); if(!tb) return; tb.innerHTML=''; list.forEach((p,i)=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${p.nombre}</td><td>${p.edad||''}</td><td>${p.tel||''}</td><td>${p.notas||0}</td><td><button class='btn ghost' onclick='editarPaciente(${i})'>Editar</button> <button class='btn' onclick='eliminarPaciente(${i})'>Eliminar</button></td>`; tb.appendChild(tr); }); }
+function filtrarPacientes(q){ const v=(q||'').toLowerCase(); pintarPacientes(db.c_pacientes.filter(p=>Object.values(p).join(' ').toLowerCase().includes(v))); }
+
+// Files Paciente (IndexedDB)
+let consDB=null;
+function openConsDB(){ return new Promise((resolve,reject)=>{ const req=indexedDB.open('cons_files',1); req.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains('files')){ const s=db.createObjectStore('files',{keyPath:'id',autoIncrement:true}); s.createIndex('paciente','paciente',{unique:false}); } }; req.onsuccess=()=>{consDB=req.result; resolve(consDB);} ; req.onerror=()=>reject(req.error); }); }
+function addConsFile(rec){ return new Promise((resolve,reject)=>{ const tx=consDB.transaction('files','readwrite'); const s=tx.objectStore('files'); const r=s.add(rec); r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error); }); }
+function getConsFilesByPaciente(paciente){ return new Promise((resolve,reject)=>{ const tx=consDB.transaction('files','readonly'); const s=tx.objectStore('files'); const idx=s.index('paciente'); const req=idx.openCursor(IDBKeyRange.only(paciente)); const out=[]; req.onsuccess=e=>{ const cur=e.target.result; if(cur){ out.push(cur.value); cur.continue(); } else resolve(out); }; req.onerror=()=>reject(req.error); }); }
+async function uploadPatientFiles(){
+  try{
+    await openConsDB();
+    const sel=document.getElementById('files-paciente'); const paciente=sel?sel.value:''; if(!paciente){ alert('Selecciona un paciente'); return; }
+    const inp=document.getElementById('pac-files'); const files=[...(inp?.files||[])]; if(!files.length){ alert('Elige archivos'); return; }
+    for(const f of files){ const buf=await f.arrayBuffer(); const blob=new Blob([buf],{type:f.type||'application/octet-stream'}); const rec={paciente,name:f.name,blob,size:f.size,type:f.type,date:new Date().toISOString()}; await addConsFile(rec); }
+    inp.value=''; renderArchivosForSelected(); alert('Archivos guardados');
+  }catch(e){ console.error(e); alert('Error subiendo archivos'); }
+}
+async function renderArchivosForSelected(){
+  try{
+    await openConsDB();
+    const sel=document.getElementById('files-paciente'); if(!sel) return; const paciente=sel.value||''; const list=paciente?await getConsFilesByPaciente(paciente):[];
+    const tb=document.querySelector('#tabla-archivos tbody'); if(!tb) return; tb.innerHTML='';
+    list.sort((a,b)=> b.date.localeCompare(a.date));
+    list.forEach(item=>{
+      const tr=document.createElement('tr'); const size=(item.size/1024).toFixed(1)+' KB'; const d=new Date(item.date).toLocaleString();
+      tr.innerHTML=`<td>${item.name}</td><td>${item.type||''}</td><td>${size}</td><td>${d}</td><td>${item.paciente}</td>
+        <td><button class='btn ghost' onclick='downloadConsFile(${item.id})'>Descargar</button></td>`;
+      tb.appendChild(tr);
+    });
+  }catch(e){ console.error(e); }
+}
+async function downloadConsFile(id){
+  await openConsDB();
+  const tx=consDB.transaction('files','readonly'); const s=tx.objectStore('files'); const r=s.get(id);
+  r.onsuccess=()=>{ const rec=r.result; if(!rec) return; const url=URL.createObjectURL(rec.blob); const a=document.createElement('a'); a.href=url; a.download=rec.name; a.click(); URL.revokeObjectURL(url); };
+}
+
+// Agenda
+function agendarCita(){ const pac=document.getElementById('cita-paciente').value||''; const fecha=document.getElementById('cita-fecha').value||today(); const hora=document.getElementById('cita-hora').value||'09:00'; const motivo=document.getElementById('cita-motivo').value||''; db.c_citas.push({fecha,hora,paciente:pac,motivo,estatus:'Agendada'}); save(); pintarCitas(); alert('Cita agendada'); }
+function pintarCitas(list){ list=list||db.c_citas; const tb=document.querySelector('#tabla-citas tbody'); if(!tb) return; tb.innerHTML=''; list.forEach((c,i)=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${c.fecha}</td><td>${c.hora}</td><td>${c.paciente}</td><td>${c.motivo}</td><td>${c.estatus}</td><td><button class='btn ghost' onclick='cambiarEstatusCita(${i})'>Cambiar</button></td>`; tb.appendChild(tr); }); }
+function cambiarEstatusCita(i){ const ests=['Agendada','En curso','Atendida','Cancelada']; const next=prompt('Nuevo estatus (Agendada/En curso/Atendida/Cancelada):', db.c_citas[i].estatus); if(next && ests.includes(next)){ db.c_citas[i].estatus=next; save(); pintarCitas(); } }
+function exportarCitasCSV(){ const rows=[['Fecha','Hora','Paciente','Motivo','Estatus'],...(db.c_citas||[]).map(c=>[c.fecha,c.hora,c.paciente,c.motivo,c.estatus])]; downloadCSV('citas.csv',rows); }
+
+// Nota clínica
+function guardarNotaClinica(){ const n={fecha:today(), paciente:document.getElementById('nc-paciente').value, motivo:document.getElementById('nc-motivo').value||'', dx:document.getElementById('nc-dx').value||'—', tx:document.getElementById('nc-tx').value||'—'}; db.c_notas.push(n); const p=db.c_pacientes.find(x=>x.nombre===n.paciente); if(p){ p.notas=(p.notas||0)+1; } save(); pintarNotas(); pintarPacientes(); alert('Nota clínica guardada'); }
+function pintarNotas(){ const tb=document.querySelector('#tabla-notas tbody'); if(!tb) return; tb.innerHTML=''; (db.c_notas||[]).forEach(n=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${n.fecha}</td><td>${n.paciente}</td><td>${n.dx}</td><td>${n.tx}</td>`; tb.appendChild(tr); }); }
+function exportarNotasCSV(){ const rows=[['Fecha','Paciente','Motivo','Diagnóstico','Tratamiento'],...(db.c_notas||[]).map(n=>[n.fecha,n.paciente,n.motivo,n.dx,n.tx])]; downloadCSV('notas_clinicas.csv',rows); }
+function imprimirNota(){ const pac=document.getElementById('nc-paciente').value||''; const dx=document.getElementById('nc-dx').value||'—'; const tx=document.getElementById('nc-tx').value||'—'; const motivo=document.getElementById('nc-motivo').value||''; const w=window.open('','nota','width=800,height=700'); w.document.write(`<html><head><title>Nota clínica</title><style>body{font-family:system-ui;padding:16px} h2{margin:0 0 8px 0}</style></head><body><h2>Nota clínica</h2><div><b>Paciente:</b> ${pac}</div><div><b>Motivo:</b> ${motivo}</div><div><b>Diagnóstico:</b><br>${dx}</div><div><b>Tratamiento:</b><br>${tx}</div></body></html>`); w.document.close(); w.print(); }
+
+// IA (placeholder)
 function openIAWindow(){ const base=location.origin+location.pathname; window.open(base+'#'+'/ia','consulta-ia'); }
-function consultaIA(){ const q=(document.getElementById('ia-q').value||'').trim(); const out=document.getElementById('ia-respuesta'); if(!q){ alert('Escribe tu consulta'); return; } out.textContent='Consultando… (demo)'; setTimeout(()=>{ out.textContent='(Respuesta de ejemplo)'; },600); }
+function consultaIA(){ const q=(document.getElementById('ia-q').value||'').trim(); const out=document.getElementById('ia-respuesta'); if(!q){ alert('Escribe tu consulta'); return; } out.textContent='Consultando… (demo)'; setTimeout(()=>{ out.textContent='(Respuesta de ejemplo; la integración con un proveedor como Gemini/Vertex u OpenAI se conecta vía API Key en backend.)'; },600); }
+function copyToNota(){ const r=(document.getElementById('ia-respuesta').textContent||'').trim(); if(!r){ alert('Primero consulta IA'); return;} const dx=document.getElementById('nc-dx'); dx.value=(dx.value?dx.value+'\n':'')+'— Apoyo IA —\n'+r; alert('Copiado a Nota Clínica'); }
+
+// ===== Laboratorio =====
+function pintarOrdenes(){ const tb=document.querySelector('#tabla-ordenes tbody'); if(!tb) return; tb.innerHTML=''; (db.lab_ordenes||[]).forEach((o,i)=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${o.folio}</td><td>${o.fecha}</td><td>${o.paciente}</td><td>${o.pruebas}</td><td>${o.estatus}</td><td><button class='btn ghost' onclick='cambiarEstatusOrden(${i})'>Cambiar</button></td>`; tb.appendChild(tr); }); pintarMuestras(); pintarResultados(); }
+function crearOrden(){ const folio='LAB-'+String((db.lab_ordenes?.length||0)+1).padStart(4,'0'); const paciente=document.getElementById('lab-paciente').value||''; const pruebas=document.getElementById('lab-pruebas').value||''; const estatus=document.getElementById('lab-estatus').value; db.lab_ordenes.push({folio,fecha:today(),paciente,pruebas,estatus}); save(); pintarOrdenes(); alert('Orden creada'); }
+function cambiarEstatusOrden(i){ const ests=['Registrada','Muestra tomada','En proceso','Resultados listos','Validada','Entregada']; const next=prompt('Estatus (Registrada/Muestra tomada/En proceso/Resultados listos/Validada/Entregada):', db.lab_ordenes[i].estatus); if(next && ests.includes(next)){ db.lab_ordenes[i].estatus=next; save(); pintarOrdenes(); } }
+function pintarMuestras(){ const tb=document.querySelector('#tabla-muestras tbody'); if(!tb) return; tb.innerHTML=''; (db.lab_ordenes||[]).filter(o=>['Registrada','Muestra tomada','En proceso'].includes(o.estatus)).forEach(o=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${o.folio}</td><td>${o.paciente}</td><td>${o.pruebas}</td><td>${o.estatus}</td><td><button class='btn' onclick="marcarTomada('${o.folio}')">Marcar tomada</button></td>`; tb.appendChild(tr); }); }
+function marcarTomada(folio){ const o=db.lab_ordenes.find(x=>x.folio===folio); if(o){ o.estatus='Muestra tomada'; save(); pintarOrdenes(); } }
+
+// Resultados files (IndexedDB)
+let labDB=null;
+function openLabDB(){ return new Promise((resolve,reject)=>{ const req=indexedDB.open('lab_files',1); req.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains('lab')){ const s=db.createObjectStore('lab',{keyPath:'id',autoIncrement:true}); s.createIndex('folio','folio',{unique:false}); } }; req.onsuccess=()=>{labDB=req.result; resolve(labDB);} ; req.onerror=()=>reject(req.error); }); }
+function addLabFile(rec){ return new Promise((resolve,reject)=>{ const tx=labDB.transaction('lab','readwrite'); const s=tx.objectStore('lab'); const r=s.add(rec); r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error); }); }
+function getLabFiles(){ return new Promise((resolve,reject)=>{ const tx=labDB.transaction('lab','readonly'); const s=tx.objectStore('lab'); const r=s.getAll(); r.onsuccess=()=>resolve(r.result||[]); r.onerror=()=>reject(r.error); }); }
+async function subirResultado(){
+  try{
+    await openLabDB();
+    const folio=(document.getElementById('lab-upload-folio').value||'').trim(); if(!folio){ alert('Ingresa folio'); return; }
+    const order=db.lab_ordenes.find(o=>o.folio===folio); if(!order){ alert('Orden no encontrada'); return; }
+    const fEl=document.getElementById('lab-file'); const f=fEl.files[0]; if(!f){ alert('Selecciona un archivo'); return; }
+    const buf=await f.arrayBuffer(); const blob=new Blob([buf],{type:f.type||'application/pdf'});
+    const rec={folio,name:f.name,blob,fecha:new Date().toISOString(),paciente:order.paciente};
+    await addLabFile(rec); fEl.value=''; pintarResultados(); alert('Resultado guardado');
+  }catch(e){ console.error(e); alert('Error al subir resultado'); }
+}
+async function pintarResultados(){
+  await openLabDB();
+  const list=await getLabFiles();
+  const tb=document.querySelector('#tabla-resultados tbody'); if(!tb) return; tb.innerHTML='';
+  list.sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  list.forEach(r=>{ const tr=document.createElement('tr'); const fecha=new Date(r.fecha).toLocaleString(); tr.innerHTML=`<td>${r.folio}</td><td>${r.paciente||''}</td><td>${r.name||''}</td><td>${fecha}</td><td><button class='btn ghost' onclick='descargarResultado(${r.id})'>Descargar</button></td>`; tb.appendChild(tr); });
+}
+async function descargarResultado(id){
+  await openLabDB();
+  const tx=labDB.transaction('lab','readonly'); const s=tx.objectStore('lab'); const r=s.get(id);
+  r.onsuccess=()=>{ const rec=r.result; if(!rec||!rec.blob){ alert('No hay archivo'); return;} const url=URL.createObjectURL(rec.blob); const a=document.createElement('a'); a.href=url; a.download=rec.name||'resultado'; a.click(); URL.revokeObjectURL(url); };
+}
+
+function exportarOrdenesCSV(){ const rows=[['Folio','Fecha','Paciente','Pruebas','Estatus'],...(db.lab_ordenes||[]).map(o=>[o.folio,o.fecha,o.paciente,o.pruebas,o.estatus])]; downloadCSV('lab_ordenes.csv',rows); }
+function exportarReactivosCSV(){ const rows=[['Codigo','Reactivo','Stock','Caducidad'],...(db.lab_reactivos||[]).map(r=>[r.cod,r.nombre,r.stock,r.cad])]; downloadCSV('lab_reactivos.csv',rows); }
+function generarReporteLab(){ const k=document.getElementById('lab-kpis'); k.innerHTML=''; const total=(db.lab_ordenes||[]).length; const entregadas=(db.lab_ordenes||[]).filter(o=>o.estatus==='Entregada').length; const pendientes=(db.lab_ordenes||[]).filter(o=>['Registrada','Muestra tomada','En proceso'].includes(o.estatus)).length; const mk=(t,v)=>{const c=document.createElement('div'); c.className='card'; c.innerHTML=`<h3>${t}</h3><div class='kpi'>${v}</div>`; return c}; k.append(mk('Órdenes totales',total)); k.append(mk('Entregadas',entregadas)); k.append(mk('Pendientes',pendientes)); }
 
 // ===== Config =====
 function guardarConfig(){ localStorage.setItem('negocio',document.getElementById('negocio').value); localStorage.setItem('pieTicket',document.getElementById('pie').value); alert('Configuración guardada'); }
 function cargarConfig(){ document.getElementById('negocio').value=localStorage.getItem('negocio')||''; document.getElementById('pie').value=localStorage.getItem('pieTicket')||'Gracias por su compra 💊'; }
-async function limpiarDatosDemo(){ if(!confirm('Esto borrará inventario, ventas, config y recetas/archivos locales. ¿Continuar?')) return; localStorage.removeItem(STORE_KEY); localStorage.removeItem('folio'); if(window.indexedDB){ await new Promise(res=>{ const a=indexedDB.deleteDatabase('tpv_rx_files'); a.onsuccess=a.onerror=a.onblocked=()=>res(); }); } alert('Datos borrados. Recargando…'); location.reload(); }
+async function limpiarDatosDemo(){ if(!confirm('Esto borrará inventario, ventas, config y archivos locales (recetas, consultorio, laboratorio). ¿Continuar?')) return; localStorage.removeItem(KEY); localStorage.removeItem('folio'); if(window.indexedDB){ await new Promise(res=>{ const a=indexedDB.deleteDatabase('rx_files'); a.onsuccess=a.onerror=a.onblocked=()=>res(); }); await new Promise(res=>{ const a=indexedDB.deleteDatabase('cons_files'); a.onsuccess=a.onerror=a.onblocked=()=>res(); }); await new Promise(res=>{ const a=indexedDB.deleteDatabase('lab_files'); a.onsuccess=a.onerror=a.onblocked=()=>res(); }); } location.reload(); }
 
-// ===== Routing & Init =====
-function goto(id){ location.hash = '#/'+id; }
-function route(){ const id=(location.hash.replace('#/','')||'ventas'); document.getElementById('view-ia').style.display=(id==='ia')?'block':'none'; mostrar(id); if(id==='reportes') generarReportes(); if(id==='recetas') { cargarClientesSelects(); pintarRecetas(); } if(id==='clientes') { pintarClientes(); } }
-window.addEventListener('hashchange',route);
-
-function init(){ pintarInv(); cargarConfig(); cargarFolio(); initAtajos(); cargarClientesSelects(); route(); }
+// ===== Inicialización =====
 function initAtajos(){ const cont=document.getElementById('atajos'); if(!cont) return; cont.innerHTML=''; (db.inventario||[]).slice(0,9).forEach(p=>{ const b=document.createElement('button'); b.className='btn ghost'; b.textContent=(p.nombre||'').split(' ').slice(0,2).join(' '); b.title=p.nombre; b.onclick=()=>agregarLinea(p); cont.appendChild(b); }); }
-
+function init(){ pintarInv(); pintarClientes(); cargarClientesSelects(); cargarPacientesSelects(); pintarProv(); cargarFolio(); initAtajos(); route(); cargarConfig(); }
 init();
 </script>
 </body>
